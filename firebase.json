@@ -1,1 +1,16 @@
-{"flutter":{"platforms":{"android":{"default":{"projectId":"ecoearn-7c0ca","appId":"1:271736423528:android:2cd70ec6fc23c5bcf7e7dd","fileOutput":"android/app/google-services.json"}},"dart":{"lib/firebase_options.dart":{"projectId":"ecoearn-7c0ca","configurations":{"android":"1:271736423528:android:2cd70ec6fc23c5bcf7e7dd","ios":"1:271736423528:ios:d233d9867db4d1eff7e7dd","macos":"1:271736423528:ios:d233d9867db4d1eff7e7dd","web":"1:271736423528:web:4dd99442efdc79eff7e7dd","windows":"1:271736423528:web:61342ecd1801a0a8f7e7dd"}}}}}}
+{
+  "hosting": {
+    "public": "build/web",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ]
+  }
+}

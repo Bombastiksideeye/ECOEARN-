@@ -3,36 +3,40 @@ import 'package:firebase_auth/firebase_auth.dart';
 
 class WasteService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final String userId = FirebaseAuth.instance.currentUser?.uid ?? '';
+  final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  // Get user's waste collection stats
-  Stream<Map<String, dynamic>> getWasteStats() {
-    return _firestore
-        .collection('users')
-        .doc(userId)
-        .snapshots()
-        .map((snapshot) {
-      if (snapshot.exists) {
-        return {
-          'totalPoints': snapshot.data()?['totalPoints'] ?? 0,
-          'totalItems': snapshot.data()?['totalItems'] ?? 0,
-        };
+  Future<void> initializeUserStats() async {
+    final user = _auth.currentUser;
+    if (user != null) {
+      final userDoc = await _firestore.collection('users').doc(user.uid).get();
+      if (!userDoc.exists) {
+        await _firestore.collection('users').doc(user.uid).set({
+          'totalPoints': 0,
+          'totalItems': 0,
+          'lastUpdated': DateTime.now(),
+        });
       }
-      return {'totalPoints': 0, 'totalItems': 0};
-    });
+    }
   }
 
-  // Initialize user stats if they don't exist
-  Future<void> initializeUserStats() async {
-    final docRef = _firestore.collection('users').doc(userId);
-    final doc = await docRef.get();
-    
-    if (!doc.exists) {
-      await docRef.set({
-        'totalPoints': 0,
-        'totalItems': 0,
-        'createdAt': FieldValue.serverTimestamp(),
-      });
+  Stream<Map<String, dynamic>> getWasteStats() {
+    final user = _auth.currentUser;
+    if (user == null) {
+      return Stream.value({'totalPoints': 0, 'totalItems': 0});
     }
+
+    return _firestore
+        .collection('users')
+        .doc(user.uid)
+        .snapshots()
+        .map((doc) {
+      if (!doc.exists) {
+        return {'totalPoints': 0, 'totalItems': 0};
+      }
+      return {
+        'totalPoints': doc.data()?['totalPoints'] ?? 0,
+        'totalItems': doc.data()?['totalItems'] ?? 0,
+      };
+    });
   }
 } 
