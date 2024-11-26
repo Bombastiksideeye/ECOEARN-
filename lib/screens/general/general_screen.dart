@@ -20,8 +20,22 @@ class GeneralScreen extends StatefulWidget {
 class _GeneralScreenState extends State<GeneralScreen> {
   final TextEditingController _quantityController = TextEditingController();
   final TextEditingController _weightController = TextEditingController();
+  String? _selectedMetalType;
   File? _image;
   bool _isLoading = false;
+
+  final List<String> _metalTypes = [
+    'Aluminum',
+    'Steel',
+    'Copper',
+    'Brass',
+    'Iron',
+    'Tin',
+    'Lead',
+    'Zinc',
+    'Alloy',
+    'Other'
+  ];
 
   Future<void> _uploadImage() async {
     final picker = ImagePicker();
@@ -74,9 +88,18 @@ class _GeneralScreenState extends State<GeneralScreen> {
   }
 
   Future<void> _submitRecycling() async {
-    if (_quantityController.text.isEmpty || _weightController.text.isEmpty) {
+    // Basic validation for quantity
+    if (_quantityController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please fill all required fields')),
+        const SnackBar(content: Text('Please fill in the quantity')),
+      );
+      return;
+    }
+
+    // Metal-specific validation
+    if (widget.materialType.toLowerCase() == 'metal' && _selectedMetalType == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select a metal type')),
       );
       return;
     }
@@ -88,27 +111,41 @@ class _GeneralScreenState extends State<GeneralScreen> {
       final timestamp = DateTime.now();
       final quantity = int.parse(_quantityController.text);
       
-      String? base64Image;
-      
-      if (_image != null) {
-        // Convert image to base64
-        base64Image = await _imageToBase64(_image!);
-      }
-
-      // Create recycling record in Firestore
-      await FirebaseFirestore.instance.collection('recycling_requests').add({
+      Map<String, dynamic> recyclingData = {
         'userId': user!.uid,
         'userName': user.displayName,
         'materialType': widget.materialType.toLowerCase(),
         'quantity': quantity,
-        'weight': double.parse(_weightController.text),
-        'imageData': base64Image, // Store base64 image instead of URL
         'status': 'pending',
         'timestamp': timestamp,
-      });
+      };
+
+      // Only add weight field for non-glass materials
+      if (widget.materialType.toLowerCase() != 'glass') {
+        if (_weightController.text.isEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Please fill in the weight')),
+          );
+          setState(() => _isLoading = false);
+          return;
+        }
+        recyclingData['weight'] = double.parse(_weightController.text);
+      }
+
+      if (widget.materialType.toLowerCase() == 'metal') {
+        recyclingData['metalType'] = _selectedMetalType;
+      }
+
+      if (_image != null) {
+        recyclingData['imageData'] = await _imageToBase64(_image!);
+      }
+
+      // Create recycling record in Firestore
+      await FirebaseFirestore.instance
+          .collection('recycling_requests')
+          .add(recyclingData);
 
       // Update user's recycling stats
-      final weightInGrams = double.parse(_weightController.text) * 1000;
       await FirebaseFirestore.instance
           .collection('users')
           .doc(user.uid)
@@ -118,14 +155,13 @@ class _GeneralScreenState extends State<GeneralScreen> {
         'lastUpdated': timestamp,
       }, SetOptions(merge: true));
 
-      // Update material-specific stats
+      // Update material-specific stats with quantity
       await FirebaseFirestore.instance
           .collection('recycling_stats')
           .doc(user.uid)
           .set({
-        '${widget.materialType.toLowerCase()}_month': FieldValue.increment(weightInGrams),
-        '${widget.materialType.toLowerCase()}_total': FieldValue.increment(weightInGrams),
-        '${widget.materialType.toLowerCase()}_items': FieldValue.increment(quantity),
+        '${widget.materialType.toLowerCase()}_items_month': FieldValue.increment(quantity),
+        '${widget.materialType.toLowerCase()}_items_total': FieldValue.increment(quantity),
       }, SetOptions(merge: true));
 
       Navigator.pop(context);
@@ -188,6 +224,44 @@ class _GeneralScreenState extends State<GeneralScreen> {
                 contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               ),
             ),
+
+            if (widget.materialType.toLowerCase() == 'metal') ...[
+              const SizedBox(height: 16),
+              const Text(
+                'Metal Type',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 8),
+              DropdownButtonFormField<String>(
+                value: _selectedMetalType,
+                decoration: const InputDecoration(
+                  border: OutlineInputBorder(),
+                  contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                ),
+                hint: const Text('Select metal type'),
+                items: _metalTypes.map((String type) {
+                  return DropdownMenuItem<String>(
+                    value: type,
+                    child: Text(type),
+                  );
+                }).toList(),
+                onChanged: (String? newValue) {
+                  setState(() {
+                    _selectedMetalType = newValue;
+                  });
+                },
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please select a metal type';
+                  }
+                  return null;
+                },
+              ),
+            ],
+
             const SizedBox(height: 16),
             const Text(
               'Quantity',
@@ -205,23 +279,27 @@ class _GeneralScreenState extends State<GeneralScreen> {
               ),
               keyboardType: TextInputType.number,
             ),
-            const SizedBox(height: 16),
-            const Text(
-              'Weight (kg)',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
+
+            if (widget.materialType.toLowerCase() != 'glass') ...[
+              const SizedBox(height: 16),
+              const Text(
+                'Weight (kg)',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: _weightController,
-              decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-                contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _weightController,
+                decoration: const InputDecoration(
+                  border: OutlineInputBorder(),
+                  contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                ),
+                keyboardType: TextInputType.number,
               ),
-              keyboardType: TextInputType.number,
-            ),
+            ],
+
             const SizedBox(height: 24),
             GestureDetector(
               onTap: _uploadImage,

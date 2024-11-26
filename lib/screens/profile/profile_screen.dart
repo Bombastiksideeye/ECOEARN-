@@ -175,23 +175,23 @@ class ProfileScreen extends StatelessWidget {
                     final totalPoints = profileData['totalPoints'] ?? 0;
                     
                     final monthlyData = {
-                      'plastic': recyclingData['plastic_month'] ?? 0,
-                      'glass': recyclingData['glass_month'] ?? 0,
-                      'metal': recyclingData['metal_month'] ?? 0,
-                      'electronics': recyclingData['electronics_month'] ?? 0,
+                      'plastic': recyclingData['plastic_items_month'] ?? 0,
+                      'glass': recyclingData['glass_items_month'] ?? 0,
+                      'metal': recyclingData['metal_items_month'] ?? 0,
+                      'electronics': recyclingData['electronics_items_month'] ?? 0,
                     };
                     
                     final totalData = {
-                      'plastic': recyclingData['plastic_total'] ?? 0,
-                      'glass': recyclingData['glass_total'] ?? 0,
-                      'metal': recyclingData['metal_total'] ?? 0,
-                      'electronics': recyclingData['electronics_total'] ?? 0,
+                      'plastic': recyclingData['plastic_items_total'] ?? 0,
+                      'glass': recyclingData['glass_items_total'] ?? 0,
+                      'metal': recyclingData['metal_items_total'] ?? 0,
+                      'electronics': recyclingData['electronics_items_total'] ?? 0,
                     };
 
-                    final monthlyTotal = monthlyData['plastic']! +
-                                        monthlyData['glass']! +
-                                        monthlyData['metal']! +
-                                        monthlyData['electronics']!;
+                    final monthlyTotal = monthlyData.values.fold<int>(0, (sum, value) {
+                      final intValue = value is int ? value : (value as num).toInt();
+                      return sum + intValue;
+                    });
 
                     return Column(
                       children: [
@@ -350,7 +350,7 @@ class ProfileScreen extends StatelessWidget {
                                           ),
                                         ),
                                         const Text(
-                                          'g',
+                                          'items',
                                           style: TextStyle(
                                             fontSize: 16,
                                             color: Colors.grey,
@@ -387,26 +387,26 @@ class ProfileScreen extends StatelessWidget {
                                   ),
                                   _buildTableRow(
                                     'Plastic',
-                                    '${monthlyData['plastic']}g',
-                                    '${(totalData['plastic']! / 1000).toStringAsFixed(1)}kg',
+                                    '${monthlyData['plastic']} items',
+                                    '${totalData['plastic']} items',
                                     Colors.green,
                                   ),
                                   _buildTableRow(
                                     'Glass',
-                                    '${monthlyData['glass']}g',
-                                    '${(totalData['glass']! / 1000).toStringAsFixed(1)}kg',
+                                    '${monthlyData['glass']} items',
+                                    '${totalData['glass']} items',
                                     Colors.blue,
                                   ),
                                   _buildTableRow(
                                     'Metal',
-                                    '${monthlyData['metal']}g',
-                                    '${(totalData['metal']! / 1000).toStringAsFixed(1)}kg',
+                                    '${monthlyData['metal']} items',
+                                    '${totalData['metal']} items',
                                     Colors.yellow,
                                   ),
                                   _buildTableRow(
                                     'Electronics',
-                                    '${monthlyData['electronics']}g',
-                                    '${(totalData['electronics']! / 1000).toStringAsFixed(1)}kg',
+                                    '${monthlyData['electronics']} items',
+                                    '${totalData['electronics']} items',
                                     Colors.orange,
                                   ),
                                 ],

@@ -33,7 +33,7 @@ class MyApp extends StatelessWidget {
       ),
       initialRoute: '/',
       routes: {
-        '/': (context) => const AdminLoginScreen(), // Your initial screen
+        '/': (context) =>  const OnboardingScreen(), // Your initial screen
         '/signin': (context) => const SignInScreen(),
         '/signup': (context) => const SignUpScreen(),
         '/verify-email': (context) => const EmailVerificationScreen(),
